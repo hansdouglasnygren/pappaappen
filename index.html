@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f1318">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Pappa-appen 👶</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f1318;
+  --card: #1a1f2e;
+  --card2: #1e2438;
+  --accent: #f4c842;
+  --accent2: #f97316;
+  --green: #34d399;
+  --blue: #818cf8;
+  --pink: #f472b6;
+  --muted: #6b7280;
+  --text: #f0f4ff;
+  --border: rgba(255,255,255,0.07);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100dvh; max-width: 430px;
+  margin: 0 auto; padding: 0 0 72px; overflow-x: hidden;
+}
+
+/* HEADER */
+header {
+  background: #1a1f2e; padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+}
+.header-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.app-title { font-family:'Space Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:2px; text-transform:uppercase; }
+.date-chip { font-size:12px; color:var(--muted); background:rgba(255,255,255,0.05); padding:4px 10px; border-radius:20px; border:1px solid var(--border); }
+.clock { font-family:'Space Mono',monospace; font-size:40px; font-weight:700; letter-spacing:-1px; line-height:1; margin-bottom:4px; }
+.next-bar { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); }
+.next-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+
+/* PROGRESS */
+.progress-wrap { background:var(--card); border-bottom:1px solid var(--border); padding:10px 20px; }
+.progress-row { display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:6px; }
+.progress-bar { height:4px; background:rgba(255,255,255,0.06); border-radius:2px; overflow:hidden; }
+.progress-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:2px; transition:width .5s cubic-bezier(.34,1.56,.64,1); }
+
+/* NAV */
+.bottom-nav {
+  position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+  width:100%; max-width:430px;
+  background:var(--card); border-top:1px solid var(--border);
+  display:flex; padding:8px 0 max(8px,env(safe-area-inset-bottom)); z-index:100;
+}
+.nav-btn { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; border:none; background:transparent; color:var(--muted); font-family:'DM Sans',sans-serif; font-size:10px; font-weight:500; cursor:pointer; padding:6px 0; transition:color .2s; }
+.nav-btn.active { color:var(--accent); }
+.nav-icon { font-size:20px; line-height:1; }
+
+/* VIEWS */
+.view { display:none; padding:16px 20px; }
+.view.active { display:block; }
+
+/* ── TIMELINE ── */
+.timeline { display:flex; flex-direction:column; gap:0; }
+
+/* connector line */
+.tl-connector {
+  width:2px; height:14px; background:var(--border);
+  margin:0 auto; flex-shrink:0;
+}
+.tl-connector.done { background:rgba(52,211,153,.25); }
+
+/* BASE CARD */
+.tl-card {
+  border-radius:14px; border:1px solid var(--border);
+  background:var(--card); overflow:hidden;
+  transition:all .25s cubic-bezier(.34,1.56,.64,1);
+  position:relative;
+}
+.tl-card::before {
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+  opacity:0; transition:opacity .2s;
+}
+.tl-card.is-next { border-color:rgba(244,200,66,.35); background:rgba(244,200,66,.05); }
+.tl-card.is-next::before { opacity:1; background:var(--accent); animation:blink 1.5s infinite; }
+.tl-card.is-done { opacity:.5; }
+.tl-card.is-done::before { opacity:1; background:var(--green); }
+.tl-card.is-nap-active { border-color:rgba(129,140,248,.4); background:rgba(129,140,248,.05); }
+.tl-card.is-nap-active::before { opacity:1; background:var(--blue); animation:blink 1.5s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* MEAL ROW */
+.meal-row { display:flex; align-items:center; gap:14px; padding:13px 16px; cursor:pointer; }
+.tl-time { font-family:'Space Mono',monospace; font-size:16px; font-weight:700; white-space:nowrap; min-width:48px; color:var(--muted); }
+.is-next .tl-time { color:var(--accent); }
+.is-done .tl-time { color:var(--green); }
+.is-nap-active .tl-time { color:var(--blue); }
+.tl-info { flex:1; }
+.tl-name { font-size:15px; font-weight:600; }
+.tl-sub { font-size:11px; color:var(--muted); margin-top:1px; }
+.is-next .tl-sub { color:rgba(244,200,66,.7); }
+.is-nap-active .tl-sub { color:rgba(129,140,248,.8); }
+.check-circle {
+  width:28px; height:28px; border-radius:50%; border:2px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  transition:all .25s cubic-bezier(.34,1.56,.64,1); flex-shrink:0; font-size:14px; cursor:pointer;
+}
+.is-done .check-circle { background:var(--green); border-color:var(--green); }
+.is-next .check-circle { border-color:var(--accent); }
+
+/* comment preview */
+.meal-comment-preview {
+  font-size:11px; color:var(--muted); font-style:italic;
+  padding:0 16px 10px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+/* NAP CARD INNER */
+.nap-inner { padding:14px 16px; }
+.nap-top { display:flex; align-items:center; gap:14px; }
+.nap-icon-wrap { width:42px; height:42px; border-radius:50%; background:rgba(129,140,248,.12); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+.nap-info { flex:1; }
+.nap-name { font-size:15px; font-weight:600; }
+.nap-sub { font-size:11px; color:var(--muted); margin-top:1px; }
+
+/* nap expanded controls */
+.nap-controls { margin-top:12px; padding-top:12px; border-top:1px solid var(--border); display:none; }
+.tl-card.nap-open .nap-controls { display:block; }
+.nap-ring-row { display:flex; align-items:center; gap:16px; }
+.nap-ring-wrap { position:relative; width:80px; height:80px; flex-shrink:0; }
+.nap-ring-wrap svg { transform:rotate(-90deg); }
+.ring-bg { fill:none; stroke:rgba(255,255,255,.06); stroke-width:5; }
+.ring-fill { fill:none; stroke:var(--blue); stroke-width:5; stroke-linecap:round; transition:stroke-dashoffset .5s linear; }
+.ring-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.ring-time { font-family:'Space Mono',monospace; font-size:14px; font-weight:700; color:var(--text); line-height:1; }
+.ring-sub-sm { font-size:9px; color:var(--muted); margin-top:2px; }
+.nap-right { flex:1; display:flex; flex-direction:column; gap:8px; }
+.dur-row { display:flex; align-items:center; gap:8px; }
+.dur-btn { width:32px; height:32px; border-radius:50%; border:1px solid var(--border); background:var(--card2); color:var(--text); font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+.dur-btn:active { transform:scale(.9); background:var(--accent); color:#000; }
+.dur-label { font-family:'Space Mono',monospace; font-size:13px; color:var(--muted); min-width:52px; text-align:center; }
+.nap-btns { display:flex; gap:6px; }
+.nap-btn { flex:1; padding:9px 8px; border:none; border-radius:10px; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; cursor:pointer; transition:all .2s; }
+.nap-btn.primary { background:var(--blue); color:#fff; }
+.nap-btn.stop { background:rgba(255,255,255,.06); color:var(--muted); border:1px solid var(--border); }
+.nap-btn:disabled { opacity:.35; cursor:default; }
+.nap-log-mini { display:grid; gap:4px; margin-top:8px; }
+.nap-log-item { display:flex; justify-content:space-between; background:var(--card2); border-radius:8px; padding:6px 10px; font-size:11px; }
+.nap-log-left { color:var(--text); font-weight:500; }
+.nap-log-right { color:var(--muted); }
+
+/* SLEEP RULES */
+.sleep-rules { display:grid; gap:10px; margin-top:4px; }
+.sleep-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; position:relative; overflow:hidden; }
+.sleep-card::after { content:''; position:absolute; top:0; right:0; width:56px; height:56px; border-radius:0 14px 0 56px; opacity:.1; }
+.sleep-card:nth-child(1)::after{background:#818cf8}
+.sleep-card:nth-child(2)::after{background:#34d399}
+.sleep-card:nth-child(3)::after{background:var(--accent)}
+.sleep-card:nth-child(4)::after{background:#f472b6}
+.sleep-card:nth-child(5)::after{background:#94a3b8}
+.sleep-num { font-family:'Space Mono',monospace; font-size:10px; color:var(--muted); margin-bottom:5px; letter-spacing:1px; }
+.sleep-title { font-size:15px; font-weight:700; margin-bottom:10px; }
+.sleep-tips { display:grid; gap:5px; }
+.sleep-tip { display:flex; align-items:flex-start; gap:8px; font-size:13px; color:#c4cce8; line-height:1.4; }
+.tip-arrow { color:var(--accent); font-family:'Space Mono',monospace; font-size:11px; margin-top:1px; flex-shrink:0; }
+
+.section-label { font-family:'Space Mono',monospace; font-size:10px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:10px; margin-top:20px; }
+.section-label:first-child { margin-top:0; }
+
+/* WEEK */
+.week-grid { display:grid; gap:8px; }
+.week-row { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px 14px; }
+.week-day-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.week-day-name { font-weight:700; font-size:14px; }
+.week-score { font-family:'Space Mono',monospace; font-size:13px; color:var(--muted); font-weight:700; }
+.week-score.perfect { color:var(--accent); }
+.week-meals { display:flex; gap:5px; flex-wrap:wrap; }
+.week-meal-chip { font-size:13px; padding:3px 8px; border-radius:20px; border:1px solid var(--border); color:var(--muted); opacity:.4; }
+.week-meal-chip.done { opacity:1; background:rgba(52,211,153,.12); border-color:rgba(52,211,153,.25); }
+.week-note { font-size:12px; color:var(--muted); font-style:italic; margin-top:6px; border-top:1px solid var(--border); padding-top:6px; }
+
+/* NOTISER */
+.notif-section { display:grid; gap:10px; }
+.notif-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.notif-title { font-size:14px; font-weight:600; margin-bottom:2px; }
+.notif-sub { font-size:12px; color:var(--muted); }
+.toggle { width:44px; height:26px; background:rgba(255,255,255,.08); border-radius:13px; position:relative; cursor:pointer; transition:background .25s; flex-shrink:0; border:none; }
+.toggle.on { background:var(--green); }
+.toggle::after { content:''; position:absolute; width:20px; height:20px; background:white; border-radius:50%; top:3px; left:3px; transition:transform .25s cubic-bezier(.34,1.56,.64,1); box-shadow:0 2px 4px rgba(0,0,0,.3); }
+.toggle.on::after { transform:translateX(18px); }
+.notif-status { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px 14px; font-size:12px; color:var(--muted); text-align:center; }
+.notif-status.ok { color:var(--green); border-color:rgba(52,211,153,.2); }
+.notif-status.warn { color:var(--accent); border-color:rgba(244,200,66,.2); }
+.test-btn { width:100%; padding:12px; border:1px dashed rgba(244,200,66,.3); border-radius:12px; background:rgba(244,200,66,.05); color:var(--accent); font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
+.reset-btn { width:100%; margin-top:14px; padding:12px; border:1px solid var(--border); border-radius:12px; background:transparent; color:var(--muted); font-family:'DM Sans',sans-serif; font-size:13px; cursor:pointer; }
+
+/* TOAST */
+.toast { position:fixed; bottom:84px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--green); color:#000; font-weight:700; font-size:13px; padding:10px 20px; border-radius:100px; opacity:0; transition:all .35s cubic-bezier(.34,1.56,.64,1); pointer-events:none; white-space:nowrap; z-index:999; }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* MODAL */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:200; display:flex; align-items:flex-end; justify-content:center; opacity:0; pointer-events:none; transition:opacity .25s; }
+.modal-overlay.open { opacity:1; pointer-events:all; }
+.modal-box { background:#1e2438; border-radius:20px 20px 0 0; padding:20px 20px 36px; width:100%; max-width:430px; transform:translateY(100%); transition:transform .3s cubic-bezier(.34,1.56,.64,1); }
+.modal-overlay.open .modal-box { transform:translateY(0); }
+.modal-title { font-size:16px; font-weight:700; margin-bottom:14px; }
+.modal-textarea { width:100%; background:rgba(255,255,255,.05); border:1px solid var(--border); border-radius:12px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:14px; padding:12px; resize:none; outline:none; min-height:90px; }
+.modal-textarea:focus { border-color:rgba(244,200,66,.4); }
+.modal-textarea::placeholder { color:var(--muted); }
+.modal-btns { display:flex; gap:8px; margin-top:12px; }
+.modal-btn { flex:1; padding:12px; border:none; border-radius:12px; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:700; cursor:pointer; }
+.modal-btn.save { background:var(--accent); color:#000; }
+.modal-btn.cancel { background:rgba(255,255,255,.06); color:var(--muted); }
+
+/* ALARM */
+.alarm-overlay { position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:300; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; opacity:0; pointer-events:none; transition:opacity .3s; }
+.alarm-overlay.open { opacity:1; pointer-events:all; }
+.alarm-emoji { font-size:72px; animation:wobble 1s infinite; }
+@keyframes wobble { 0%,100%{transform:rotate(-10deg)} 50%{transform:rotate(10deg)} }
+.alarm-title { font-size:28px; font-weight:700; text-align:center; }
+.alarm-sub { font-size:15px; color:var(--muted); text-align:center; }
+.alarm-dismiss { padding:16px 40px; background:var(--accent); color:#000; border:none; border-radius:100px; font-family:'DM Sans',sans-serif; font-size:16px; font-weight:700; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <span class="app-title">👶 Pappa-appen</span>
+    <span class="date-chip" id="dateChip">—</span>
+  </div>
+  <div class="clock" id="clock">00:00</div>
+  <div class="next-bar">
+    <div class="next-dot"></div>
+    <span id="nextEventText">Laddar...</span>
+  </div>
+</header>
+
+<div class="progress-wrap">
+  <div class="progress-row">
+    <span>Måltider idag</span>
+    <span id="progressText">0 / 5</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-dag"     onclick="switchTab('dag')">    <span class="nav-icon">📋</span>Dagen</button>
+  <button class="nav-btn"        id="nav-vecka"   onclick="switchTab('vecka')">  <span class="nav-icon">📅</span>Vecka</button>
+  <button class="nav-btn"        id="nav-notiser" onclick="switchTab('notiser')"><span class="nav-icon">🔔</span>Notiser</button>
+</nav>
+
+<!-- ═══ DAGEN ═══ -->
+<div class="view active" id="view-dag">
+  <div class="section-label">Tidslinje</div>
+  <div class="timeline" id="timeline"></div>
+  <button class="reset-btn" onclick="resetDay()">↺ Återställ dagen</button>
+
+  <div class="section-label">Sömnregler</div>
+  <div class="sleep-rules">
+    <div class="sleep-card">
+      <div class="sleep-num">REGEL 01</div>
+      <div class="sleep-title">Nap 1 styr allt</div>
+      <div class="sleep-tips">
+        <div class="sleep-tip"><span class="tip-arrow">→</span><span>Lägg ca <strong>10.00</strong></span></div>
+        <div class="sleep-tip"><span class="tip-arrow">→</span><span>Max <strong>1 h</strong> (1 h 10 min)</span></div>
+        <div class="sleep-tip"><span class="tip-arrow">→</span><span>Inte före <strong>09.45</strong></span></div>
+      </div>
+    </div>
+    <div class="sleep-card">
+      <div class="sleep-num">REGEL 02</div>
+      <div class="sleep-title">Nap 2 = finjustering</div>
+      <div class="sleep-tips">
+        <div class="sleep-tip"><span class="tip-arrow">→</span><span>Ca <strong>14.30</strong></span></div>
+        <div class="sleep-tip"><span class="tip-arrow">→</span><span>45–50 min</span></div>
+        <div class="sleep-tip"><span class="tip-arrow">→</span><span>Kort nap = <strong>tidigare</strong> kväll</span></div>
+        <div class="sleep-tip"><span class="tip-arrow">→</span><span>Sen nap = <strong>senare</strong> kväll</span></div>
+      </div>
+    </div>
+    <div class="sleep-card">
+      <div class="sleep-num">REGEL 03</div>
+      <div class="sleep-title">Kvällen styr morgonen</div>
+      <div class="sleep-tips">
+        <div class="sleep-tip"><span class="tip-arrow">→</span><span>Lägg <strong>19.30–20.00</strong></span></div>
+        <div class="sleep-tip"><span class="tip-arrow">→</span><span>För tidigt = tidig morgon</span></div>
+        <div class="sleep-tip"><span class="tip-arrow">→</span><span>För sent = stökig natt</span></div>
+      </div>
+    </div>
+    <div class="sleep-card">
+      <div class="sleep-num">REGEL 04</div>
+      <div class="sleep-title">Skydda morgonen</div>
+      <div class="sleep-tips">
+        <div class="sleep-tip"><span class="tip-arrow">→</span><span>Starta dagen tidigast <strong>06.30</strong></span></div>
+        <div class="sleep-tip"><span class="tip-arrow">→</span><span>Försök somna om före det</span></div>
+      </div>
+    </div>
+    <div class="sleep-card">
+      <div class="sleep-num">REGEL 05</div>
+      <div class="sleep-title">När det strular – förenkla</div>
+      <div class="sleep-tips">
+        <div class="sleep-tip"><span class="tip-arrow">→</span><span>Prioritera <strong>sömn</strong></span></div>
+        <div class="sleep-tip"><span class="tip-arrow">→</span><span>Hjälp direkt</span></div>
+        <div class="sleep-tip"><span class="tip-arrow">→</span><span>Tillbaka till schemat nästa dag</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ VECKA ═══ -->
+<div class="view" id="view-vecka">
+  <div class="section-label">Senaste 7 dagarna</div>
+  <div class="week-grid" id="weekGrid"></div>
+</div>
+
+<!-- ═══ NOTISER ═══ -->
+<div class="view" id="view-notiser">
+  <div class="section-label">Notifikationer</div>
+  <div id="notifStatus" class="notif-status warn">Klicka nedan för att aktivera notiser</div>
+  <br>
+  <div class="notif-section">
+    <div class="notif-card">
+      <div><div class="notif-title">Måltidspåminnelser</div><div class="notif-sub">5 min innan varje mål</div></div>
+      <button class="toggle" id="toggleMat" onclick="toggleNotif('mat')"></button>
+    </div>
+    <div class="notif-card">
+      <div><div class="notif-title">Nap-påminnelse</div><div class="notif-sub">09.55 och 14.25</div></div>
+      <button class="toggle" id="toggleNap" onclick="toggleNotif('nap')"></button>
+    </div>
+    <div class="notif-card">
+      <div><div class="notif-title">Kvällsläggning</div><div class="notif-sub">19.25 – dags att varva ner</div></div>
+      <button class="toggle" id="toggleKvall" onclick="toggleNotif('kvall')"></button>
+    </div>
+  </div>
+  <br>
+  <button class="test-btn" onclick="sendTestNotif()">🔔 Skicka testnotis</button>
+  <br>
+  <p style="font-size:12px;color:var(--muted);text-align:center;line-height:1.6;padding:0 8px">
+    💡 Lägg till på hemskärmen via Chrome-menyn (⋮ → Lägg till på hemskärmen) för att använda som app.
+  </p>
+</div>
+
+<!-- MODAL: kommentar -->
+<div class="modal-overlay" id="commentModal" onclick="closeModalOutside(event)">
+  <div class="modal-box">
+    <div class="modal-title" id="modalTitle">Vad åts?</div>
+    <textarea class="modal-textarea" id="modalText" placeholder="T.ex. havregrynsgröt med bär…" rows="3"></textarea>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeModal()">Avbryt</button>
+      <button class="modal-btn save" onclick="saveComment()">💾 Spara</button>
+    </div>
+  </div>
+</div>
+
+<!-- ALARM -->
+<div class="alarm-overlay" id="alarmOverlay">
+  <div class="alarm-emoji">⏰</div>
+  <div class="alarm-title" id="alarmTitle">Nap klar!</div>
+  <div class="alarm-sub" id="alarmSub">Dags att väcka!</div>
+  <button class="alarm-dismiss" onclick="dismissAlarm()">✓ Okej!</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── SCHEMA: allt i en lista, sorterat på tid ──
+// type: 'meal' | 'nap'
+const ITEMS = [
+  { type:'meal', id:'frukost',    time:'07:30', h:7,  m:30, name:'Frukost',   emoji:'🥣', tag:'Morgonmålet' },
+  { type:'meal', id:'mellanmal1', time:'09:30', h:9,  m:30, name:'Mellanmål', emoji:'🍌', tag:'Förmiddag' },
+  { type:'nap',  id:'nap1',                     h:10, m:0,  name:'Nap 1',     emoji:'😴', tag:'Max 1 h · inte före 09.45', defaultDur:60 },
+  { type:'meal', id:'lunch',      time:'11:30', h:11, m:30, name:'Lunch',     emoji:'🥗', tag:'Dagens viktigaste' },
+  { type:'meal', id:'mellanmal2', time:'14:00', h:14, m:0,  name:'Mellanmål', emoji:'🍎', tag:'Eftermiddag' },
+  { type:'nap',  id:'nap2',                     h:14, m:30, name:'Nap 2',     emoji:'😴', tag:'45–50 min · finjustering', defaultDur:45 },
+  { type:'meal', id:'middag',     time:'17:00', h:17, m:0,  name:'Middag',    emoji:'🍝', tag:'Kvällsmålet' },
+];
+const MEALS = ITEMS.filter(i => i.type === 'meal');
+
+// ── STATE ──
+const DAY_KEY = () => 'day_' + new Date().toDateString();
+const getData = () => JSON.parse(localStorage.getItem(DAY_KEY()) || '{"done":[],"comments":{}}');
+const saveData = d => localStorage.setItem(DAY_KEY(), JSON.stringify(d));
+
+const napState = {
+  nap1: JSON.parse(localStorage.getItem('napState_nap1') || '{"dur":60,"startTs":null,"running":false,"log":[]}'),
+  nap2: JSON.parse(localStorage.getItem('napState_nap2') || '{"dur":45,"startTs":null,"running":false,"log":[]}'),
+};
+const saveNap = id => localStorage.setItem('napState_'+id, JSON.stringify(napState[id]));
+
+let napInterval = null;
+let scheduledNotifs = [];
+const toggleState = JSON.parse(localStorage.getItem('toggleState') || '{"mat":false,"nap":false,"kvall":false}');
+const CIRC = 2 * Math.PI * 36; // r=36 for 80px ring
+
+// ── CLOCK ──
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const days=['Sön','Mån','Tis','Ons','Tor','Fre','Lör'];
+  const months=['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
+  document.getElementById('dateChip').textContent =
+    `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}`;
+}
+
+// ── NEXT EVENT ──
+function getNextItem() {
+  const d = getData(); const now = new Date();
+  const nowMin = now.getHours()*60+now.getMinutes();
+  for (const item of ITEMS) {
+    if (item.type === 'meal' && !d.done.includes(item.id)) {
+      const diff = (item.h*60+item.m) - nowMin;
+      if (diff > -90) return { item, diff };
+    }
+    if (item.type === 'nap' && !napState[item.id].running) {
+      const diff = (item.h*60+item.m) - nowMin;
+      if (diff > -30 && diff < 90) return { item, diff };
+    }
+  }
+  return null;
+}
+function updateNextEvent() {
+  const next = getNextItem();
+  const el = document.getElementById('nextEventText');
+  if (!next) { el.textContent = '✅ Allt klart för idag!'; return; }
+  const { item, diff } = next;
+  const name = item.name;
+  const emoji = item.emoji;
+  const timeStr = item.time || `${String(item.h).padStart(2,'0')}:${String(item.m).padStart(2,'0')}`;
+  if (diff <= 0) el.textContent = `${emoji} ${name} – dags nu!`;
+  else if (diff < 60) el.textContent = `${emoji} ${name} kl ${timeStr} – om ${diff} min`;
+  else el.textContent = `${emoji} ${name} kl ${timeStr} – om ${Math.floor(diff/60)}h ${diff%60}m`;
+}
+
+// ── RENDER TIMELINE ──
+function renderTimeline() {
+  const d = getData(); const now = new Date();
+  const nowMin = now.getHours()*60+now.getMinutes();
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = '';
+
+  // figure out which is "next" undone meal
+  let nextMealId = null;
+  for (const item of ITEMS) {
+    if (item.type==='meal' && !d.done.includes(item.id)) {
+      nextMealId = item.id; break;
+    }
+  }
+
+  ITEMS.forEach((item, idx) => {
+    const isDone = item.type==='meal' && d.done.includes(item.id);
+    const isNext = item.type==='meal' && item.id===nextMealId;
+    const isNapRunning = item.type==='nap' && napState[item.id].running;
+
+    // build card
+    const card = document.createElement('div');
+    card.className = 'tl-card'
+      + (isDone   ? ' is-done'       : '')
+      + (isNext   ? ' is-next'       : '')
+      + (isNapRunning ? ' is-nap-active' : '');
+    card.id = 'card-'+item.id;
+
+    if (item.type === 'meal') {
+      const comment = d.comments[item.id]||'';
+      card.innerHTML = `
+        <div class="meal-row">
+          <div class="tl-time">${item.time}</div>
+          <div class="tl-info">
+            <div class="tl-name">${item.emoji} ${item.name}</div>
+            <div class="tl-sub">${isNext?'▶ Nästa':item.tag}</div>
+          </div>
+          <div class="check-circle">${isDone?'✓':''}</div>
+        </div>
+        ${comment?`<div class="meal-comment-preview">💬 ${comment}</div>`:''}
+      `;
+      card.querySelector('.check-circle').onclick = e => { e.stopPropagation(); toggleMeal(item.id); };
+      card.querySelector('.meal-row').onclick = e => {
+        if (e.target.closest('.check-circle')) return;
+        openCommentModal(item.id, item.name, item.emoji);
+      };
+    } else {
+      // NAP card
+      const ns = napState[item.id];
+      const timeLabel = `${String(item.h).padStart(2,'0')}:${String(item.m).padStart(2,'0')}`;
+      card.innerHTML = `
+        <div class="nap-inner">
+          <div class="nap-top" onclick="toggleNapOpen('${item.id}')" style="cursor:pointer">
+            <div class="nap-icon-wrap">😴</div>
+            <div class="tl-info">
+              <div class="tl-name">${item.name}</div>
+              <div class="tl-sub">ca ${timeLabel} · ${item.tag}</div>
+            </div>
+            <div style="color:var(--muted);font-size:12px;padding-left:4px" id="napToggleIcon-${item.id}">▾</div>
+          </div>
+          <div class="nap-controls" id="napControls-${item.id}">
+            <div class="nap-ring-row">
+              <div class="nap-ring-wrap">
+                <svg width="80" height="80" viewBox="0 0 80 80">
+                  <circle class="ring-bg" cx="40" cy="40" r="36"/>
+                  <circle class="ring-fill" id="ring-${item.id}" cx="40" cy="40" r="36"
+                    stroke-dasharray="${CIRC.toFixed(1)}" stroke-dashoffset="${CIRC.toFixed(1)}"/>
+                </svg>
+                <div class="ring-center">
+                  <div class="ring-time" id="ringTime-${item.id}">${String(ns.dur).padStart(2,'0')}:00</div>
+                  <div class="ring-sub-sm" id="ringSub-${item.id}">kvar</div>
+                </div>
+              </div>
+              <div class="nap-right">
+                <div class="dur-row">
+                  <button class="dur-btn" onclick="changeDur('${item.id}',-5)">−</button>
+                  <span class="dur-label" id="durLabel-${item.id}">${ns.dur} min</span>
+                  <button class="dur-btn" onclick="changeDur('${item.id}',5)">+</button>
+                </div>
+                <div class="nap-btns">
+                  <button class="nap-btn primary" id="startBtn-${item.id}" onclick="startNap('${item.id}')">▶ Starta</button>
+                  <button class="nap-btn stop" id="stopBtn-${item.id}" onclick="stopNap('${item.id}')" disabled>⏹ Avsluta</button>
+                </div>
+              </div>
+            </div>
+            <div class="nap-log-mini" id="napLog-${item.id}"></div>
+          </div>
+        </div>
+      `;
+      renderNapLog(item.id);
+    }
+
+    tl.appendChild(card);
+
+    // connector between items (not after last)
+    if (idx < ITEMS.length-1) {
+      const conn = document.createElement('div');
+      conn.className = 'tl-connector' + (isDone?' done':'');
+      tl.appendChild(conn);
+    }
+  });
+
+  // progress: meals only
+  const doneMeals = MEALS.filter(m => d.done.includes(m.id)).length;
+  document.getElementById('progressText').textContent = `${doneMeals} / ${MEALS.length}`;
+  document.getElementById('progressFill').style.width = `${(doneMeals/MEALS.length)*100}%`;
+
+  // re-attach running state to buttons
+  ['nap1','nap2'].forEach(id => {
+    if (napState[id].running) {
+      const sb = document.getElementById('startBtn-'+id);
+      const xb = document.getElementById('stopBtn-'+id);
+      if(sb) { sb.textContent='⏳ Pågår…'; sb.disabled=true; }
+      if(xb) xb.disabled=false;
+    }
+  });
+}
+
+// ── TOGGLE NAP OPEN ──
+function toggleNapOpen(id) {
+  const card = document.getElementById('card-'+id);
+  const open = card.classList.toggle('nap-open');
+  document.getElementById('napToggleIcon-'+id).textContent = open ? '▴' : '▾';
+}
+
+// ── MEAL ──
+let modalMealId = null;
+function toggleMeal(id) {
+  const d = getData(); const meal = MEALS.find(m=>m.id===id);
+  const idx = d.done.indexOf(id);
+  if(idx===-1){d.done.push(id);showToast(`${meal.emoji} ${meal.name} avbockad!`);}
+  else{d.done.splice(idx,1);showToast(`↩ ${meal.name} återställd`);}
+  saveData(d); renderTimeline(); updateNextEvent();
+}
+function resetDay() {
+  const d=getData(); d.done=[]; saveData(d);
+  renderTimeline(); updateNextEvent(); showToast('↺ Dagen återställd');
+}
+function openCommentModal(id,name,emoji) {
+  modalMealId=id;
+  document.getElementById('modalTitle').textContent=`${emoji} Vad åts till ${name.toLowerCase()}?`;
+  document.getElementById('modalText').value=getData().comments[id]||'';
+  document.getElementById('commentModal').classList.add('open');
+  setTimeout(()=>document.getElementById('modalText').focus(),300);
+}
+function closeModal(){document.getElementById('commentModal').classList.remove('open');modalMealId=null;}
+function closeModalOutside(e){if(e.target===document.getElementById('commentModal'))closeModal();}
+function saveComment(){
+  if(!modalMealId)return;
+  const d=getData(); const val=document.getElementById('modalText').value.trim();
+  if(val)d.comments[modalMealId]=val; else delete d.comments[modalMealId];
+  saveData(d); closeModal(); renderTimeline(); showToast('💾 Kommentar sparad');
+}
+
+// ── NAP TIMER ──
+function changeDur(id, delta) {
+  if(napState[id].running)return;
+  napState[id].dur=Math.max(5,Math.min(120,napState[id].dur+delta));
+  const el=document.getElementById('durLabel-'+id);
+  const rt=document.getElementById('ringTime-'+id);
+  if(el)el.textContent=napState[id].dur+' min';
+  if(rt)rt.textContent=String(napState[id].dur).padStart(2,'0')+':00';
+  saveNap(id);
+}
+function startNap(id) {
+  if(napState[id].running)return;
+  napState[id].startTs=Date.now(); napState[id].running=true;
+  const sb=document.getElementById('startBtn-'+id);
+  const xb=document.getElementById('stopBtn-'+id);
+  if(sb){sb.textContent='⏳ Pågår…';sb.disabled=true;}
+  if(xb)xb.disabled=false;
+  // mark card active
+  const card=document.getElementById('card-'+id);
+  if(card)card.classList.add('is-nap-active');
+  saveNap(id);
+  if(!napInterval) napInterval=setInterval(tickNaps,1000);
+}
+function stopNap(id) {
+  const s=napState[id];
+  if(s.running&&s.startTs){
+    const elapsed=Math.round((Date.now()-s.startTs)/60000);
+    const now=new Date();
+    const ts=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    s.log.unshift({time:ts,min:elapsed});
+    if(s.log.length>4)s.log.pop();
+  }
+  s.running=false;s.startTs=null;
+  const sb=document.getElementById('startBtn-'+id);
+  const xb=document.getElementById('stopBtn-'+id);
+  if(sb){sb.textContent='▶ Starta';sb.disabled=false;}
+  if(xb)xb.disabled=true;
+  const ring=document.getElementById('ring-'+id);
+  const rt=document.getElementById('ringTime-'+id);
+  const rs=document.getElementById('ringSub-'+id);
+  if(ring)ring.style.strokeDashoffset=CIRC;
+  if(rt)rt.textContent=String(s.dur).padStart(2,'0')+':00';
+  if(rs)rs.textContent='kvar';
+  const card=document.getElementById('card-'+id);
+  if(card)card.classList.remove('is-nap-active');
+  saveNap(id); renderNapLog(id); checkStopInterval();
+}
+function tickNaps() {
+  Object.keys(napState).forEach(id=>{
+    const s=napState[id];
+    if(!s.running||!s.startTs)return;
+    const elapsed=(Date.now()-s.startTs)/1000;
+    const total=s.dur*60;
+    const remaining=total-elapsed;
+    if(remaining<=0){triggerAlarm(id);stopNap(id);return;}
+    const mm=Math.floor(remaining/60),ss=Math.floor(remaining%60);
+    const rt=document.getElementById('ringTime-'+id);
+    const ring=document.getElementById('ring-'+id);
+    if(rt)rt.textContent=String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+    const pct=1-(remaining/total);
+    if(ring)ring.style.strokeDashoffset=CIRC*(1-pct);
+  });
+}
+function checkStopInterval(){
+  if(!Object.values(napState).some(s=>s.running)){clearInterval(napInterval);napInterval=null;}
+}
+function renderNapLog(id){
+  const el=document.getElementById('napLog-'+id); if(!el)return;
+  el.innerHTML=napState[id].log.map(l=>`<div class="nap-log-item"><span class="nap-log-left">Nap avslutad</span><span class="nap-log-right">${l.time} · ${l.min} min</span></div>`).join('');
+}
+function triggerAlarm(id){
+  const n=id==='nap1'?1:2;
+  document.getElementById('alarmTitle').textContent=`Nap ${n} klar! 🎉`;
+  document.getElementById('alarmSub').textContent=`${napState[id].dur} min är slut – dags att väcka!`;
+  document.getElementById('alarmOverlay').classList.add('open');
+  if('vibrate' in navigator)navigator.vibrate([500,200,500,200,500]);
+  if(Notification.permission==='granted')
+    new Notification(`⏰ Nap ${n} klar!`,{body:`${napState[id].dur} min är slut!`});
+}
+function dismissAlarm(){
+  document.getElementById('alarmOverlay').classList.remove('open');
+  if('vibrate' in navigator)navigator.vibrate(0);
+}
+
+// ── WEEK ──
+function renderWeek(){
+  const grid=document.getElementById('weekGrid');grid.innerHTML='';
+  const days=['Sön','Mån','Tis','Ons','Tor','Fre','Lör'];
+  const months=['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
+  for(let i=6;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const key='day_'+d.toDateString();
+    const data=JSON.parse(localStorage.getItem(key)||'{"done":[],"comments":{}}');
+    const isToday=i===0;
+    const score=data.done.length;
+    const chips=MEALS.map(m=>`<span class="week-meal-chip${data.done.includes(m.id)?' done':''}">${m.emoji}</span>`).join('');
+    const commentLines=MEALS.filter(m=>data.comments&&data.comments[m.id]).map(m=>`${m.emoji} ${data.comments[m.id]}`).join(' · ');
+    const row=document.createElement('div');
+    row.className='week-row';
+    if(isToday)row.style.borderColor='rgba(244,200,66,.3)';
+    row.innerHTML=`
+      <div class="week-day-header">
+        <div class="week-day-name">${isToday?'📍 Idag':days[d.getDay()]+' '+d.getDate()+' '+months[d.getMonth()]}</div>
+        <div class="week-score${score===5?' perfect':''}">${score}/5</div>
+      </div>
+      <div class="week-meals">${chips}</div>
+      ${commentLines?`<div class="week-note">💬 ${commentLines}</div>`:''}
+    `;
+    grid.appendChild(row);
+  }
+}
+
+// ── TABS ──
+function switchTab(tab){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+tab).classList.add('active');
+  document.getElementById('nav-'+tab).classList.add('active');
+  if(tab==='vecka')renderWeek();
+}
+
+// ── TOAST ──
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ── NOTIFICATIONS ──
+async function requestNotifPermission(){
+  if(!('Notification' in window))return false;
+  if(Notification.permission==='granted')return true;
+  return(await Notification.requestPermission())==='granted';
+}
+function updateNotifStatus(){
+  const el=document.getElementById('notifStatus');
+  if(!('Notification' in window)){el.textContent='⚠️ Webbläsaren stöder inte notiser';el.className='notif-status warn';return;}
+  if(Notification.permission==='granted'){el.textContent='✅ Notiser aktiverade';el.className='notif-status ok';}
+  else if(Notification.permission==='denied'){el.textContent='❌ Notiser blockerade – ändra i inställningarna';el.className='notif-status warn';}
+  else{el.textContent='⚠️ Ej aktiverade – klicka på testknappen';el.className='notif-status warn';}
+}
+function toggleNotif(key){
+  requestNotifPermission().then(ok=>{
+    if(!ok){updateNotifStatus();return;}
+    toggleState[key]=!toggleState[key];
+    document.getElementById('toggle'+key[0].toUpperCase()+key.slice(1)).classList.toggle('on',toggleState[key]);
+    scheduleNotifications();showToast(toggleState[key]?'🔔 Påminnelser på':'🔕 Påminnelser av');
+    updateNotifStatus();localStorage.setItem('toggleState',JSON.stringify(toggleState));
+  });
+}
+function scheduleNotifications(){
+  scheduledNotifs.forEach(t=>clearTimeout(t));scheduledNotifs=[];
+  const now=new Date();
+  if(toggleState.mat)MEALS.forEach(m=>{
+    const t=new Date();t.setHours(m.h,m.m-5,0,0);const diff=t-now;
+    if(diff>0)scheduledNotifs.push(setTimeout(()=>new Notification(`${m.emoji} ${m.name} om 5 min!`,{body:`Kl ${m.time}`}),diff));
+  });
+  if(toggleState.nap)[[9,55,'Nap 1 snart!','Lägg ner om 5 min (kl 10.00)'],[14,25,'Nap 2 snart!','Lägg ner om 5 min (kl 14.30)']].forEach(([h,m,title,body])=>{
+    const t=new Date();t.setHours(h,m,0,0);const diff=t-now;
+    if(diff>0)scheduledNotifs.push(setTimeout(()=>new Notification(`🛌 ${title}`,{body}),diff));
+  });
+  if(toggleState.kvall){const t=new Date();t.setHours(19,25,0,0);const diff=t-now;if(diff>0)scheduledNotifs.push(setTimeout(()=>new Notification('🌙 Kvällsrutin snart!',{body:'Läggdags 19.30–20.00'}),diff));}
+}
+function sendTestNotif(){
+  requestNotifPermission().then(ok=>{
+    updateNotifStatus();if(!ok){showToast('❌ Ge tillåtelse i webbläsaren');return;}
+    const next=getNextItem();
+    new Notification('👶 Pappa-appen fungerar!',{body:next?`Nästa: ${next.item.emoji} ${next.item.name}`:'Allt klart! 🎉'});
+    showToast('✅ Testnotis skickad!');
+  });
+}
+
+// ── INIT ──
+updateClock();setInterval(updateClock,10000);setInterval(updateNextEvent,60000);
+renderTimeline();updateNextEvent();updateNotifStatus();
+
+Object.keys(toggleState).forEach(k=>{
+  const btn=document.getElementById('toggle'+k[0].toUpperCase()+k.slice(1));
+  if(btn&&toggleState[k])btn.classList.add('on');
+});
+if(Notification.permission==='granted')scheduleNotifications();
+
+// resume running naps
+Object.keys(napState).forEach(id=>{
+  if(napState[id].running&&napState[id].startTs){
+    if(!napInterval)napInterval=setInterval(tickNaps,1000);
+  }
+});
+</script>
+</body>
+</html>
